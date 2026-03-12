@@ -22,7 +22,7 @@ app.use('/api/products', productRoutes)
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({ mensaje: 'PcArgentina API funcionando' })
+  res.json({ mensaje: 'PrecioPC API funcionando' })
 })
 
 app.listen(PORT, () => {

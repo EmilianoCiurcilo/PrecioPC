@@ -1,18 +1,18 @@
 const CATEGORY_MAP = [
   {
     nombre: 'Procesadores',
-    emoji: '🔲',
+    emoji: '⚡',
     subcategorias: ['Procesadores AMD', 'Procesadores Intel']
   },
   {
     nombre: 'Placas de Video',
     emoji: '🎮',
-    subcategorias: ['Placas de Video NVIDIA GeForce', 'Placas de Video AMD', 'Placas de Video Intel ARC']
+    subcategorias: ['Placas de video NVIDIA', 'Placas de video AMD', 'Placas de video Intel']
   },
   {
     nombre: 'Motherboards',
     emoji: '🖥️',
-    subcategorias: ['Motherboards AMD', 'Motherboards Intel']
+    subcategorias: ['Mothers AMD', 'Mothers Intel']
   },
   {
     nombre: 'Memorias RAM',
@@ -22,32 +22,37 @@ const CATEGORY_MAP = [
   {
     nombre: 'Almacenamiento',
     emoji: '💾',
-    subcategorias: ['Almacenamiento SSD', 'Almacenamiento HDD', 'SSD SATA']
+    subcategorias: ['Discos SSD', 'Discos rigidos', 'Discos externos']
   },
   {
     nombre: 'Fuentes',
-    emoji: '⚡',
-    subcategorias: ['Fuentes de Alimentacion']
+    emoji: '🔌',
+    subcategorias: ['Fuentes de alimentacion']
   },
   {
     nombre: 'Gabinetes',
     emoji: '🗄️',
-    subcategorias: ['Gabinetes']
+    subcategorias: ['Gabinetes', 'Accesorios de Gabinetes']
   },
   {
     nombre: 'Refrigeración',
     emoji: '❄️',
-    subcategorias: ['Cooler CPU', 'Cooler Fan', 'Pasta Térmica']
+    subcategorias: ['Coolers CPU', 'Coolers Fan', 'Pasta termica']
   },
   {
     nombre: 'Pantallas',
     emoji: '🖥',
-    subcategorias: ['Monitores', 'Televisores']
+    subcategorias: ['Monitores y pantallas', 'Televisores']
   },
   {
     nombre: 'Periféricos',
     emoji: '⌨️',
-    subcategorias: ['Teclados', 'Mouses', 'Auriculares', 'Webcams', 'Joysticks', 'MousePads', 'Parlantes', 'Combos Teclados, Mouses y otros', 'Micofonos', 'Volantes - Simuladores de juego', 'Stream Deck']
+    subcategorias: [
+      'Teclados', 'Mouses', 'Auriculares', 'Webcam',
+      'Joysitcks', 'Mousepads', 'Parlantes',
+      'Combos Teclados, Mouses y otros', 'Microfonos',
+      'Volantes - Simuladores de manejo', 'Stream Deck'
+    ]
   },
   {
     nombre: 'Notebooks',
@@ -62,27 +67,31 @@ const CATEGORY_MAP = [
   {
     nombre: 'Combos',
     emoji: '📦',
-    subcategorias: ['Kits de actualizacion']
+    subcategorias: ['Combos']
   },
   {
     nombre: 'Sillas Gamer',
     emoji: '🪑',
-    subcategorias: ['Sillas Gamer']
+    subcategorias: ['Sillas gamers']
   },
   {
     nombre: 'Consolas de Videojuego',
     emoji: '🕹️',
-    subcategorias: ['Consolas']
+    subcategorias: ['Consolas de videojuego']
   },
   {
     nombre: 'Impresoras e Insumos',
     emoji: '🖨️',
-    subcategorias: ['Impresoras y Multifunciones']
+    subcategorias: ['Impresoras y Multifunciones', 'Toners']
   },
   {
     nombre: 'Otros',
-    emoji: '📦',
-    subcategorias: ['Modding | Cables, Iluminacion y otros', 'Robots', 'Placas de red inalambricas', 'Routers WIFI', 'Toners', 'Estabilizadores', 'UPS', 'Cables y adaptadores']
+    emoji: '🔧',
+    subcategorias: [
+      'Placas de red inalambricas', 'Routers WIFI',
+      'Estabilizadores', 'UPS', 'Cables y adaptadores',
+      'Robots'
+    ]
   }
 ]
 

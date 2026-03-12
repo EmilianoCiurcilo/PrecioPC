@@ -61,8 +61,22 @@ const login = async (req, res) => {
   }
 }
 
+const updatePerfil = async (req, res) => {
+  try {
+    const { nombre } = req.body
+    const usuario = await User.findByIdAndUpdate(
+      req.user.id,
+      { nombre },
+      { new: true, select: '-password' }
+    )
+    res.json(usuario)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
 const getMe = async (req, res) => {
   res.json(req.usuario)
 }
 
-module.exports = { register, login, getMe }
+module.exports = { register, login, getMe, updatePerfil }

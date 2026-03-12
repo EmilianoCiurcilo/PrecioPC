@@ -1,255 +1,217 @@
-import { useState, useEffect } from 'react'
-import { getProducts, getCategorias } from '../services/productService'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import Navbar from '../components/Navbar'
-import { useAuth } from '../context/useAuth'
-import { addFavorite, getFavorites, removeFavorite } from '../services/productService'
+
+const API = 'http://localhost:3001/api'
+
+const CATEGORY_ICONS = {
+  'Procesadores': '⚡',
+  'Placas de Video': '🎮',
+  'Motherboards': '🖥️',
+  'Memorias RAM': '🧠',
+  'Almacenamiento': '💾',
+  'Fuentes': '🔌',
+  'Gabinetes': '🗄️',
+  'Refrigeración': '❄️',
+  'Pantallas': '🖥',
+  'Periféricos': '⌨️',
+  'Notebooks': '💻',
+  'PC Armadas': '🖥️',
+  'Combos': '📦',
+  'Sillas Gamer': '🪑',
+  'Consolas de Videojuego': '🕹️',
+  'Impresoras e Insumos': '🖨️',
+  'Otros': '🔧',
+}
+
+function ProductCard({ producto, onClick }) {
+  return (
+    <div onClick={onClick} className="group cursor-pointer rounded-2xl border border-white/5 p-4 flex flex-col transition-all duration-200 hover:border-violet-500/50 hover:-translate-y-0.5"
+      style={{ background: 'rgba(255,255,255,0.03)' }}>
+      <div className="rounded-xl mb-3 flex items-center justify-center h-44 overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.05)' }}>
+        <img src={producto.imagen} alt={producto.nombre}
+          className="h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          onError={e => e.target.style.display = 'none'} />
+      </div>
+      <p className="text-xs font-medium mb-1" style={{ color: '#a78bfa' }}>
+        {producto.categoria}
+      </p>
+      <p className="text-sm text-white font-medium leading-snug mb-3 flex-1 line-clamp-2">
+        {producto.nombre}
+      </p>
+      <div className="mt-auto">
+        {producto.precioAnterior && (
+          <p className="text-xs text-gray-600 line-through">
+            ${producto.precioAnterior?.toLocaleString('es-AR')}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          <p className="text-base font-bold text-white">
+            ${producto.precio?.toLocaleString('es-AR')}
+          </p>
+          {producto.descuento > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+              style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
+              -{producto.descuento}%
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-600 mt-1">{producto.tienda}</p>
+      </div>
+    </div>
+  )
+}
 
 function Home() {
-  const [productos, setProductos] = useState([])
-  const [categorias, setCategorias] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [favoritos, setFavoritos] = useState([])
-  const [filtros, setFiltros] = useState({
-    busqueda: '',
-    categoria: '',
-    precioMin: '',
-    precioMax: '',
-    orden: '',
-    page: 1
-  })
-
-
   const navigate = useNavigate()
+  const [categorias, setCategorias] = useState([])
+  const [descuentos, setDescuentos] = useState([])
+  const [masBuscados, setMasBuscados] = useState([])
+  const [loading, setLoading] = useState(true)
+  const catScrollRef = useRef(null)
 
   useEffect(() => {
-    getCategorias().then(setCategorias)
-  }, [])
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true)
+    const fetchData = async () => {
       try {
-        const data = await getProducts(filtros)
-        setProductos(data.productos)
-        setTotal(data.total)
-      } catch (error) {
-        console.error('Error al cargar productos:', error)
+        const [cats, desc, buscados] = await Promise.all([
+          axios.get(`${API}/products/categorias-agrupadas`),
+          axios.get(`${API}/products/descuentos`),
+          axios.get(`${API}/products/mas-buscados`),
+        ])
+        setCategorias(cats.data)
+        setDescuentos(desc.data)
+        setMasBuscados(buscados.data)
+      } catch (err) {
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
-    fetchProducts()
-  }, [filtros])
+    fetchData()
+  }, [])
 
-
-
-  const handleFiltro = (campo, valor) => {
-    setFiltros(prev => ({ ...prev, [campo]: valor, page: 1 }))
+  const scrollCats = (dir) => {
+    catScrollRef.current?.scrollBy({ left: dir * 300, behavior: 'smooth' })
   }
 
-  const { usuario } = useAuth()
-
-  const handleFavorito = async (e, producto) => {
-    e.stopPropagation()
-    if (!usuario) return navigate('/login')
-    try {
-      if (favoritos.includes(producto._id)) {
-        await removeFavorite(producto._id, usuario.token)
-        setFavoritos(prev => prev.filter(id => id !== producto._id))
-      } else {
-        await addFavorite(producto._id, producto.precio, usuario.token)
-        setFavoritos(prev => [...prev, producto._id])
-      }
-    } catch (error) {
-      console.error(error)
-    }
+  const irACategoria = (cat) => {
+    navigate(`/productos?categoria=${encodeURIComponent(cat.nombre)}`)
   }
-
-  useEffect(() => {
-    const cargarFavoritos = async () => {
-      if (!usuario) return
-      try {
-        const data = await getFavorites(usuario.token)
-        setFavoritos(data.map(f => f.producto._id))
-      } catch (error) {
-        console.error(error)
-      }
-    }
-    cargarFavoritos()
-  }, [usuario])
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen" style={{ background: '#08080f', color: 'white' }}>
+      <Navbar />
 
-      <Navbar
-
-  onBusqueda={(valor) => handleFiltro('busqueda', valor)}
-  busqueda={filtros.busqueda}/>
-
-      <div className="flex">
-
-        {/* Sidebar filtros */}
-        <aside className="w-64 min-h-screen bg-gray-900 border-r border-gray-800 p-5 flex flex-col gap-6 sticky top-16 h-screen overflow-y-auto">
-          
-          <div>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Categoría</h2>
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => handleFiltro('categoria', '')}
-                className={`text-left text-sm px-3 py-2 rounded-lg transition ${filtros.categoria === '' ? 'bg-cyan-500 text-black font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-              >
-                Todas
-              </button>
-              {categorias.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => handleFiltro('categoria', cat)}
-                  className={`text-left text-sm px-3 py-2 rounded-lg transition ${filtros.categoria === cat ? 'bg-cyan-500 text-black font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+      {/* Banner placeholder */}
+      <div className="max-w-screen-xl mx-auto px-6 pt-8">
+        <div className="rounded-2xl h-48 flex items-center justify-center border border-white/5 mb-8"
+          style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.2) 0%, rgba(16,185,129,0.1) 100%)' }}>
+          <div className="text-center">
+            <p className="text-2xl font-black text-white mb-1">🔥 Hot Sale — Hasta 40% OFF</p>
+            <p className="text-gray-400 text-sm">Los mejores precios de Argentina en un solo lugar</p>
           </div>
-
-          <div>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Precio</h2>
-            <div className="flex flex-col gap-2">
-              <input
-                type="number"
-                placeholder="Mínimo"
-                value={filtros.precioMin}
-                onChange={e => handleFiltro('precioMin', e.target.value)}
-                className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
-              <input
-                type="number"
-                placeholder="Máximo"
-                value={filtros.precioMax}
-                onChange={e => handleFiltro('precioMax', e.target.value)}
-                className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Ordenar</h2>
-            <div className="flex flex-col gap-1">
-              {[
-                { label: 'Más reciente', value: '' },
-                { label: 'Menor precio', value: 'precio_asc' },
-                { label: 'Mayor precio', value: 'precio_desc' },
-                { label: 'Nombre A-Z', value: 'nombre_asc' },
-              ].map(op => (
-                <button
-                  key={op.value}
-                  onClick={() => handleFiltro('orden', op.value)}
-                  className={`text-left text-sm px-3 py-2 rounded-lg transition ${filtros.orden === op.value ? 'bg-cyan-500 text-black font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-                >
-                  {op.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-        </aside>
-
-        {/* Contenido principal */}
-        <main className="flex-1 p-6">
-
-          {/* Header resultados */}
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-gray-400 text-sm">
-              <span className="text-white font-semibold">{total.toLocaleString('es-AR')}</span> productos encontrados
-            </p>
-          </div>
-
-          {/* Grid productos */}
-{loading ? (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-    {Array.from({ length: 20 }).map((_, i) => (
-      <div key={i} className="bg-gray-900 rounded-xl p-4 animate-pulse">
-        <div className="bg-gray-800 h-40 rounded-lg mb-3" />
-        <div className="bg-gray-800 h-3 rounded mb-2" />
-        <div className="bg-gray-800 h-3 rounded w-2/3 mb-3" />
-        <div className="bg-gray-800 h-5 rounded w-1/2" />
-      </div>
-    ))}
-  </div>
-) : (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-    {productos.map(producto => (
-      <div
-        key={producto._id}
-        onClick={() => navigate(`/producto/${producto._id}`)}
-        className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col hover:border-cyan-500 transition cursor-pointer group"
-      >
-        <div className="bg-gray-800 rounded-lg mb-3 flex items-center justify-center h-40 overflow-hidden">
-          <img
-            src={producto.imagen}
-            alt={producto.nombre}
-            className="h-full object-contain group-hover:scale-105 transition"
-            onError={e => e.target.style.display = 'none'}
-          />
         </div>
-        <p className="text-xs text-cyan-400 font-medium mb-1">{producto.categoria}</p>
-        <p className="text-sm text-white font-medium leading-snug mb-3 flex-1 line-clamp-3">
-          {producto.nombre}
-        </p>
-        <div className="mt-auto">
-  {producto.precioAnterior && (
-    <p className="text-xs text-gray-500 line-through">
-      ${producto.precioAnterior?.toLocaleString('es-AR')}
-    </p>
-  )}
-  <div className="flex items-center gap-2">
-    <p className="text-lg font-bold text-white">
-      ${producto.precio?.toLocaleString('es-AR')}
-    </p>
-    {producto.descuento > 0 && (
-      <span className="text-xs bg-green-900 text-green-400 px-2 py-0.5 rounded-full font-semibold">
-        -{producto.descuento}%
-      </span>
-    )}
-  </div>
-  <p className="text-xs text-gray-500 mt-1">{producto.tienda}</p>
-  <button
-  onClick={(e) => handleFavorito(e, producto)}
-  className={`mt-2 w-full text-xs py-1.5 rounded-lg transition border ${
-    favoritos.includes(producto._id)
-      ? 'bg-red-900/30 border-red-700 text-red-400'
-      : 'border-gray-700 hover:border-cyan-500 text-gray-400 hover:text-cyan-400'
-  }`}
->
-  {favoritos.includes(producto._id) ? '♥ En favoritos' : '♡ Favoritos'}
-</button>
-</div>
-      </div>
-    ))}
-  </div>
-)}
 
-          {/* Paginación */}
-          <div className="flex items-center justify-center gap-4 mt-10">
-            <button
-              disabled={filtros.page === 1}
-              onClick={() => setFiltros(prev => ({ ...prev, page: prev.page - 1 }))}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm transition"
-            >
-              ← Anterior
-            </button>
-            <span className="text-gray-400 text-sm">Página {filtros.page}</span>
-            <button
-              onClick={() => setFiltros(prev => ({ ...prev, page: prev.page + 1 }))}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition"
-            >
-              Siguiente →
-            </button>
+        {/* Categorías */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-white">Categorías</h2>
+            <div className="flex gap-2">
+              <button onClick={() => scrollCats(-1)}
+                className="w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-violet-500 transition flex items-center justify-center text-sm">
+                ←
+              </button>
+              <button onClick={() => scrollCats(1)}
+                className="w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-violet-500 transition flex items-center justify-center text-sm">
+                →
+              </button>
+            </div>
           </div>
 
-        </main>
+          <div ref={catScrollRef}
+            className="flex gap-3 overflow-x-auto pb-2"
+            style={{ scrollbarWidth: 'none' }}>
+            {categorias.map(cat => (
+              <button key={cat.nombre} onClick={() => irACategoria(cat)}
+                className="shrink-0 flex flex-col items-center gap-2 px-5 py-4 rounded-2xl border border-white/5 hover:border-violet-500/50 transition-all duration-200 hover:-translate-y-0.5 group"
+                style={{ background: 'rgba(255,255,255,0.03)', minWidth: '100px' }}>
+                <span className="text-2xl">{CATEGORY_ICONS[cat.nombre] || '📦'}</span>
+                <span className="text-xs text-gray-400 group-hover:text-white transition text-center leading-tight">
+                  {cat.nombre}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Descuentos de la semana */}
+        {descuentos.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-white">🔥 Descuentos de la semana</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Los mejores precios de hoy</p>
+              </div>
+              <button onClick={() => navigate('/productos?orden=descuento')}
+                className="text-xs text-violet-400 hover:text-violet-300 transition">
+                Ver todos →
+              </button>
+            </div>
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl p-4 animate-pulse" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <div className="h-44 rounded-xl mb-3" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                    <div className="h-2 rounded mb-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                    <div className="h-4 rounded w-1/2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {descuentos.map(p => (
+                  <ProductCard key={p._id} producto={p}
+                    onClick={() => navigate(`/producto/${p._id}`)} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Más buscados */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-white">⭐ Más buscados</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Los favoritos de la comunidad</p>
+            </div>
+            <button onClick={() => navigate('/productos')}
+              className="text-xs text-violet-400 hover:text-violet-300 transition">
+              Ver todos →
+            </button>
+          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-2xl p-4 animate-pulse" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="h-44 rounded-xl mb-3" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="h-2 rounded mb-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="h-4 rounded w-1/2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {masBuscados.map(p => (
+                <ProductCard key={p._id} producto={p}
+                  onClick={() => navigate(`/producto/${p._id}`)} />
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )

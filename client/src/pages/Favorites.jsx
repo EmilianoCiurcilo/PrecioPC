@@ -1,133 +1,149 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 import { useAuth } from '../context/useAuth'
 import { getFavorites, removeFavorite } from '../services/productService'
-import Navbar from '../components/Navbar'
-
-// sacá const { usuario, logout } — ya los maneja Navbar internamente
-// pero dejá const { usuario } solo para el fetch de favoritos
-
-// reemplazá el <nav>...</nav> por:
-
 
 function Favorites() {
-  const { usuario } = useAuth()
   const navigate = useNavigate()
+  const { usuario } = useAuth()
+
   const [favoritos, setFavoritos] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!usuario) return navigate('/login')
-    const fetchFavoritos = async () => {
-      try {
-        const data = await getFavorites(usuario.token)
-        setFavoritos(data)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchFavoritos()
-  }, [usuario, navigate])
+    getFavorites(usuario.token)
+      .then(data => setFavoritos(data))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [usuario])
 
   const handleRemove = async (productoId) => {
     try {
       await removeFavorite(productoId, usuario.token)
       setFavoritos(prev => prev.filter(f => f.producto._id !== productoId))
-    } catch (error) {
-      console.error(error)
+    } catch (err) {
+      console.error(err)
     }
   }
 
+  const getPriceStatus = (fav) => {
+    const actual = fav.producto.precio
+    const alAgregar = fav.precioAlAgregar
+    if (!alAgregar || actual === alAgregar) return null
+    const diff = actual - alAgregar
+    const pct = Math.round((Math.abs(diff) / alAgregar) * 100)
+    return diff < 0
+      ? { tipo: 'bajo', label: `Bajó ${pct}%`, monto: Math.abs(diff) }
+      : { tipo: 'subio', label: `Subió ${pct}%`, monto: diff }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen" style={{ background: '#08080f', color: 'white' }}>
       <Navbar />
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <h2 className="text-2xl font-bold text-white mb-2">Mis favoritos</h2>
-        <p className="text-gray-500 text-sm mb-8">
-          Te notificaremos cuando alguno de estos productos baje de precio.
-        </p>
+
+      <div className="max-w-screen-xl mx-auto px-6 py-8">
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-black text-white mb-1">Mis favoritos</h1>
+          <p className="text-sm text-gray-500">
+            {favoritos.length > 0
+              ? `${favoritos.length} producto${favoritos.length !== 1 ? 's' : ''} guardado${favoritos.length !== 1 ? 's' : ''}`
+              : 'Guardá productos para seguir sus precios'}
+          </p>
+        </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-gray-900 rounded-xl p-4 animate-pulse">
-                <div className="bg-gray-800 h-40 rounded-lg mb-3" />
-                <div className="bg-gray-800 h-3 rounded mb-2" />
-                <div className="bg-gray-800 h-5 rounded w-1/2" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-2xl p-4 animate-pulse flex gap-4"
+                style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <div className="w-24 h-24 rounded-xl shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)' }} />
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="h-2 rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="h-2 rounded w-2/3" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="h-4 rounded w-1/3 mt-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                </div>
               </div>
             ))}
           </div>
         ) : favoritos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <p className="text-5xl">♡</p>
-            <p className="text-gray-400 text-lg">No tenés favoritos todavía</p>
-            <button
-              onClick={() => navigate('/')}
-              className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-6 py-3 rounded-xl transition"
-            >
+            <p className="text-gray-400 text-lg font-medium">No tenés favoritos todavía</p>
+            <p className="text-gray-600 text-sm">Guardá productos para seguir sus precios fácilmente</p>
+            <button onClick={() => navigate('/productos')}
+              className="mt-2 text-sm font-semibold px-6 py-3 rounded-xl transition hover:opacity-90"
+              style={{ background: '#7c3aed', color: 'white' }}>
               Explorar productos
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {favoritos.map(({ producto, precioAlAgregar }) => {
-              const bajoPrecio = producto.precio < precioAlAgregar
-              const diferencia = precioAlAgregar - producto.precio
-
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {favoritos.map(fav => {
+              const status = getPriceStatus(fav)
+              const prod = fav.producto
               return (
-                <div
-                  key={producto._id}
-                  className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col hover:border-cyan-500 transition group"
-                >
+                <div key={fav._id}
+                  className="rounded-2xl border border-white/5 p-4 flex gap-4 transition hover:border-violet-500/30 group"
+                  style={{ background: 'rgba(255,255,255,0.03)' }}>
+
+                  {/* Imagen */}
                   <div
-                    className="bg-gray-800 rounded-lg mb-3 flex items-center justify-center h-40 overflow-hidden cursor-pointer"
-                    onClick={() => navigate(`/producto/${producto._id}`)}
-                  >
-                    <img
-                      src={producto.imagen}
-                      alt={producto.nombre}
-                      className="h-full object-contain group-hover:scale-105 transition"
-                      onError={e => e.target.style.display = 'none'}
-                    />
+                    onClick={() => navigate(`/producto/${prod._id}`)}
+                    className="w-24 h-24 rounded-xl shrink-0 flex items-center justify-center overflow-hidden cursor-pointer"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    {prod.imagen
+                      ? <img src={prod.imagen} alt={prod.nombre}
+                          className="h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          onError={e => e.target.style.display = 'none'} />
+                      : <span className="text-2xl">📦</span>
+                    }
                   </div>
 
-                  <p className="text-xs text-cyan-400 font-medium mb-1">{producto.categoria}</p>
-                  <p
-                    className="text-sm text-white font-medium leading-snug mb-3 flex-1 line-clamp-3 cursor-pointer"
-                    onClick={() => navigate(`/producto/${producto._id}`)}
-                  >
-                    {producto.nombre}
-                  </p>
-
-                  <div className="mt-auto">
-                    <p className="text-lg font-bold text-white">
-                      ${producto.precio?.toLocaleString('es-AR')}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <p className="text-xs mb-1" style={{ color: '#a78bfa' }}>{prod.categoria}</p>
+                    <p
+                      onClick={() => navigate(`/producto/${prod._id}`)}
+                      className="text-sm text-white font-medium leading-snug line-clamp-2 cursor-pointer hover:text-violet-300 transition mb-auto">
+                      {prod.nombre}
                     </p>
 
-                    {bajoPrecio && (
-                      <p className="text-xs text-green-400 font-medium mt-1">
-                        ↓ Bajó ${diferencia.toLocaleString('es-AR')} desde que lo guardaste
+                    <div className="mt-3">
+                      <p className="text-base font-black text-white">
+                        ${prod.precio?.toLocaleString('es-AR')}
                       </p>
-                    )}
 
-                    {!bajoPrecio && precioAlAgregar !== producto.precio && (
-                      <p className="text-xs text-red-400 mt-1">
-                        ↑ Subió desde que lo guardaste
-                      </p>
-                    )}
+                      {/* Estado del precio */}
+                      {status && (
+                        <div className={`flex items-center gap-1.5 mt-1 text-xs font-semibold ${
+                          status.tipo === 'bajo' ? 'text-emerald-400' : 'text-red-400'
+                        }`}>
+                          <span>{status.tipo === 'bajo' ? '↓' : '↑'}</span>
+                          <span>{status.label} desde que lo guardaste</span>
+                        </div>
+                      )}
 
-                    <p className="text-xs text-gray-600 mt-1">
-                      Precio al guardar: ${precioAlAgregar?.toLocaleString('es-AR')}
-                    </p>
+                      {fav.precioAlAgregar && fav.precioAlAgregar !== prod.precio && (
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Antes: ${fav.precioAlAgregar?.toLocaleString('es-AR')}
+                        </p>
+                      )}
 
-                    <button
-                      onClick={() => handleRemove(producto._id)}
-                      className="mt-3 w-full text-xs text-red-400 hover:text-red-300 border border-red-900 hover:border-red-700 py-2 rounded-lg transition"
-                    >
-                      Quitar de favoritos
-                    </button>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-gray-600">{prod.tienda}</span>
+                        <span className="text-gray-800">·</span>
+                        <button
+                          onClick={() => handleRemove(prod._id)}
+                          className="text-xs text-gray-600 hover:text-red-400 transition">
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
