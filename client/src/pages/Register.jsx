@@ -19,7 +19,7 @@ function Register() {
     setLoading(true)
     setError('')
     try {
-      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/auth/register', form)
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, form)
       login(res.data)
       navigate('/')
     } catch (err) {

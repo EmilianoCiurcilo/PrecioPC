@@ -5,7 +5,7 @@ import { useAuth } from '../context/useAuth'
 import axios from 'axios'
 import favoritoIcon from '../assets/favorito.svg'
 
-const API = '${import.meta.env.VITE_API_URL}/api'
+const API = `${import.meta.env.VITE_API_URL}/api`
 
 function Profile() {
   const navigate = useNavigate()
