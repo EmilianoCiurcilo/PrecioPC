@@ -39,9 +39,14 @@ export const getMe = async (req, res) => {
 export const updatePerfil = async (req, res) => {
   try {
     const { nombre } = req.body
-    const usuario = await User.findByIdAndUpdate(req.user.id, { nombre }, { new: true, select: '-password' })
+    const usuario = await User.findByIdAndUpdate(req.usuario._id, { nombre }, { new: true, select: '-password' })
+
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
     res.json(usuario)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
+ 
